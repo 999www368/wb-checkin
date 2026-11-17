@@ -1,0 +1,45 @@
+name: WorkBuddy 每日签到
+
+# GitHub Actions 的 cron 一律用 UTC。北京时间 10:30 = UTC 02:30。
+# 注意：免费额度下的定时任务常被排队延迟 5–40 分钟，属于正常现象。
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wb-checkin
+  cancel-in-progress: false
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 执行签到
+        env:
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+          # 只有第一次需要；state.enc 存在后这行会被忽略
+          WB_ACCOUNTS: ${{ secrets.WB_ACCOUNTS }}
+        run: node checkin.mjs
+
+      - name: 写回加密状态与手机页面数据
+        if: always()
+        run: |
+          git config user.name "wb-checkin-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.enc docs/status.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "没有变化，不提交"
+          else
+            git commit -m "checkin $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
