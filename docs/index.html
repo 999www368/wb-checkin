@@ -79,7 +79,8 @@
 <script>
 const OWNER='999www368', REPO='wb-checkin';
 const API='https://api.github.com';
-const STATUS_URL=`https://${OWNER}.github.io/${REPO}/status.json?_=${Date.now()}`;
+const STATUS_BASE=`https://${OWNER}.github.io/${REPO}/status.json`;
+const statusUrl=()=>`${STATUS_BASE}?_=${Date.now()}`;
 const TOKEN_KEY='wb_gh_token';
 
 const $=id=>document.getElementById(id);
@@ -101,7 +102,7 @@ const PILL={
 
 async function loadStatus(){
   try{
-    const r=await fetch(STATUS_URL,{cache:'no-store'});
+    const r=await fetch(statusUrl(),{cache:'no-store'});
     if(!r.ok) throw new Error(r.status);
     const d=await r.json();
     render(d);
@@ -114,8 +115,13 @@ async function loadStatus(){
 function render(d){
   const t=new Date(d.updatedAt);
   $('updatedAt').textContent='上次运行 '+t.toLocaleString('zh-CN',{hour12:false});
-  $('credit').innerHTML=`+${d.totalCredit||0}<small>积分</small>`;
-  let s=`${d.claimed||0} 个新签到`;
+  const credit=d.totalCredit||0;
+  if(credit>0){
+    $('credit').innerHTML=`+${credit}<small>积分</small>`;
+  }else{
+    $('credit').innerHTML=`已签到<small>今天</small>`;
+  }
+  let s=credit>0?`${d.claimed||0} 个新签到`:'今天不用再签了';
   if(d.failed) s+=`，${d.failed} 个失败`;
   $('summary').textContent=s;
 
