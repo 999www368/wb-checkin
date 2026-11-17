@@ -1,0 +1,20 @@
+{
+  "updatedAt": "2026-11-17T03:48:05.448Z",
+  "claimed": 0,
+  "totalCredit": 0,
+  "failed": 0,
+  "rows": [
+    {
+      "name": "***微信账号",
+      "status": "already",
+      "message": "今天已签到，连续 16 天",
+      "streakDays": 16
+    },
+    {
+      "name": "***qq",
+      "status": "already",
+      "message": "今天已签到，连续 12 天",
+      "streakDays": 12
+    }
+  ]
+}
