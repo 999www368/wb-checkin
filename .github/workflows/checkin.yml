@@ -1,10 +1,14 @@
 name: WorkBuddy 每日签到
 
-# GitHub Actions 的 cron 一律用 UTC。北京时间 10:30 = UTC 02:30。
-# 注意：免费额度下的定时任务常被排队延迟 5–40 分钟，属于正常现象。
+# GitHub Actions 的 cron 一律用 UTC（北京时间 = UTC+8）。
+#   10:30 北京 = 02:30 UTC  ← 主跑
+#   22:30 北京 = 14:30 UTC  ← 兜底：主跑被排队延迟/失败时补一次
+# 脚本是幂等的，同一天跑两次不会重复领积分（第二次会看到「今天已签到」）。
+# 免费额度下定时任务常被排队延迟 5–40 分钟，属正常现象。
 on:
   schedule:
     - cron: '30 2 * * *'
+    - cron: '30 14 * * *'
   workflow_dispatch: {}
 
 permissions:
@@ -17,6 +21,7 @@ concurrency:
 jobs:
   checkin:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
