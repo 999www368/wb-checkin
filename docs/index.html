@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>WorkBuddy 签到</title>
+<style>
+  :root{
+    --bg:#0b1220; --card:#151d2e; --card2:#1b2438; --line:#243147;
+    --fg:#e8eef9; --dim:#8b9ab3; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --accent:#4f8cff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;padding:18px 16px calc(28px + env(safe-area-inset-bottom));
+    background:radial-gradient(120% 60% at 50% 0%,#16233d 0%,var(--bg) 55%);
+    color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    min-height:100vh;
+  }
+  h1{font-size:19px;margin:6px 0 2px;font-weight:600;letter-spacing:.3px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .big{font-size:30px;font-weight:700;letter-spacing:-.5px}
+  .big small{font-size:14px;font-weight:400;color:var(--dim);margin-left:4px}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .name{font-size:15px}
+  .msg{font-size:12.5px;color:var(--dim);margin-top:3px}
+  .pill{font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap;font-weight:600}
+  .p-ok{background:rgba(52,211,153,.14);color:var(--ok)}
+  .p-already{background:rgba(139,154,179,.16);color:var(--dim)}
+  .p-fail{background:rgba(248,113,113,.15);color:var(--bad)}
+  .p-skip{background:rgba(251,191,36,.14);color:var(--warn)}
+  button{
+    width:100%;padding:15px;border-radius:14px;border:0;
+    background:linear-gradient(180deg,#5b95ff,#3f78e8);color:#fff;
+    font-size:16px;font-weight:600;font-family:inherit;
+    box-shadow:0 6px 18px rgba(63,120,232,.32);
+  }
+  button:active{transform:translateY(1px);opacity:.9}
+  button:disabled{opacity:.5;box-shadow:none}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--dim);box-shadow:none;font-weight:400;font-size:14px;padding:11px}
+  .hint{font-size:12px;color:var(--dim);margin-top:9px;text-align:center;line-height:1.5}
+  .hidden{display:none}
+  input{
+    width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);
+    background:var(--card2);color:var(--fg);font-size:15px;font-family:inherit;margin-bottom:10px;
+  }
+  input::placeholder{color:#5d6b82}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<h1>WorkBuddy 每日签到</h1>
+<div class="sub" id="updatedAt">加载中…</div>
+
+<div class="card">
+  <div class="big" id="credit">—<small>积分</small></div>
+  <div class="msg" id="summary"></div>
+</div>
+
+<div class="card" id="accounts"><div class="msg">加载中…</div></div>
+
+<div class="card hidden" id="tokenBox">
+  <div class="msg" style="margin-bottom:10px">
+    补签需要一次 GitHub 授权码（只存在你手机浏览器里，不会上传到别处）。
+  </div>
+  <input id="tokenInput" type="password" placeholder="粘贴 GitHub token" autocomplete="off">
+  <button onclick="saveToken()">保存</button>
+  <div class="hint">在电脑上打开 github.com/settings/tokens 生成，勾选 <b>workflow</b> 权限即可。</div>
+</div>
+
+<button id="runBtn" onclick="runCheckin()">立即签到</button>
+<button class="ghost" style="margin-top:10px" onclick="forget()">清除本机授权码</button>
+<div class="hint" id="hint">每天北京时间 10:30 自动签到，不用打开这个页面</div>
+
+<script>
+const OWNER='999www368', REPO='wb-checkin';
+const API='https://api.github.com';
+const STATUS_URL=`https://${OWNER}.github.io/${REPO}/status.json?_=${Date.now()}`;
+const TOKEN_KEY='wb_gh_token';
+
+const $=id=>document.getElementById(id);
+
+function tk(){return localStorage.getItem(TOKEN_KEY)||''}
+
+function mask(s){
+  if(!s) return '账号';
+  if(s.startsWith('***')) return s;
+  return s.length>6 ? s.slice(0,3)+'***'+s.slice(-2) : s;
+}
+
+const PILL={
+  claimed:['p-ok','已签到'],
+  already:['p-already','今天已签'],
+  failed:['p-fail','失败'],
+  skipped:['p-skip','无活动'],
+};
+
+async function loadStatus(){
+  try{
+    const r=await fetch(STATUS_URL,{cache:'no-store'});
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    render(d);
+  }catch(e){
+    $('updatedAt').textContent='还没跑过，点下面按钮签到';
+    $('accounts').innerHTML='<div class="msg">暂无数据</div>';
+  }
+}
+
+function render(d){
+  const t=new Date(d.updatedAt);
+  $('updatedAt').textContent='上次运行 '+t.toLocaleString('zh-CN',{hour12:false});
+  $('credit').innerHTML=`+${d.totalCredit||0}<small>积分</small>`;
+  let s=`${d.claimed||0} 个新签到`;
+  if(d.failed) s+=`，${d.failed} 个失败`;
+  $('summary').textContent=s;
+
+  const rows=d.rows||[];
+  if(!rows.length){ $('accounts').innerHTML='<div class="msg">没有账号记录</div>'; return; }
+  $('accounts').innerHTML=rows.map(r=>{
+    const [cls,label]=PILL[r.status]||['p-already',r.status];
+    return `<div class="row">
+      <div><div class="name">${mask(r.name)}</div><div class="msg">${r.message||''}</div></div>
+      <span class="pill ${cls}">${label}</span>
+    </div>`;
+  }).join('');
+}
+
+async function runCheckin(){
+  const t=tk();
+  if(!t){ $('tokenBox').classList.remove('hidden'); $('tokenInput').focus(); return; }
+
+  const btn=$('runBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>正在触发…';
+  $('hint').textContent='云端正在签到，约 20 秒后自动刷新结果';
+  try{
+    const r=await fetch(`${API}/repos/${OWNER}/${REPO}/actions/workflows/checkin.yml/dispatches`,{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${t}`,
+        'Accept':'application/vnd.github+json',
+        'Content-Type':'application/json',
+      },
+      body:JSON.stringify({ref:'main'}),
+    });
+    if(r.status===401||r.status===403){
+      throw new Error('授权码无效或没有 workflow 权限');
+    }
+    if(!r.ok && r.status!==204){
+      const txt=await r.text();
+      throw new Error(`触发失败 ${r.status} ${txt.slice(0,120)}`);
+    }
+    btn.innerHTML='<span class="spin"></span>云端运行中…';
+    let tries=0;
+    const timer=setInterval(async()=>{
+      tries++;
+      await loadStatus();
+      if(tries>=8){
+        clearInterval(timer);
+        btn.disabled=false; btn.textContent='立即签到';
+        $('hint').textContent='如果结果没变，稍等 1 分钟再刷新';
+      }
+    },6000);
+  }catch(e){
+    btn.disabled=false; btn.textContent='立即签到';
+    $('hint').textContent=e.message;
+    if(String(e.message).includes('授权码')) $('tokenBox').classList.remove('hidden');
+  }
+}
+
+function saveToken(){
+  const v=$('tokenInput').value.trim();
+  if(!v){ return; }
+  localStorage.setItem(TOKEN_KEY,v);
+  $('tokenInput').value='';
+  $('tokenBox').classList.add('hidden');
+  $('hint').textContent='授权码已保存，点「立即签到」试试';
+}
+
+function forget(){
+  localStorage.removeItem(TOKEN_KEY);
+  $('hint').textContent='已清除';
+}
+
+loadStatus();
+</script>
+</body>
+</html>
