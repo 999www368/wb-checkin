@@ -9,7 +9,12 @@ on:
   schedule:
     - cron: '30 2 * * *'
     - cron: '30 14 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: '强制刷新 token（演练用，平时留空）'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -34,6 +39,7 @@ jobs:
           STATE_KEY: ${{ secrets.STATE_KEY }}
           # 只有第一次需要；state.enc 存在后这行会被忽略
           WB_ACCOUNTS: ${{ secrets.WB_ACCOUNTS }}
+          WB_FORCE_REFRESH: ${{ inputs.force_refresh }}
         run: node checkin.mjs
 
       - name: 写回加密状态与手机页面数据
