@@ -1,0 +1,7 @@
+# 本地临时文件，别提交
+accounts.local.json
+node_modules/
+package-lock.json
+last-result.json
+checkin.log
+*.bak
