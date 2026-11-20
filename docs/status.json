@@ -1,19 +1,19 @@
 {
-  "updatedAt": "2026-11-20T03:13:57.771Z",
-  "claimed": 2,
-  "totalCredit": 200,
+  "updatedAt": "2026-11-20T15:19:43.904Z",
+  "claimed": 0,
+  "totalCredit": 0,
   "failed": 0,
   "rows": [
     {
       "name": "***微信账号",
-      "status": "claimed",
-      "message": "签到成功 +100 积分，连续 19 天",
+      "status": "already",
+      "message": "今天已签到，连续 19 天",
       "streakDays": 19
     },
     {
       "name": "***qq",
-      "status": "claimed",
-      "message": "签到成功 +100 积分，连续 15 天",
+      "status": "already",
+      "message": "今天已签到，连续 15 天",
       "streakDays": 15
     }
   ]
