@@ -1,20 +1,20 @@
 {
-  "updatedAt": "2026-11-20T15:19:43.904Z",
-  "claimed": 0,
-  "totalCredit": 0,
+  "updatedAt": "2026-11-21T03:14:21.951Z",
+  "claimed": 2,
+  "totalCredit": 200,
   "failed": 0,
   "rows": [
     {
       "name": "***微信账号",
-      "status": "already",
-      "message": "今天已签到，连续 19 天",
-      "streakDays": 19
+      "status": "claimed",
+      "message": "签到成功 +100 积分，连续 20 天",
+      "streakDays": 20
     },
     {
       "name": "***qq",
-      "status": "already",
-      "message": "今天已签到，连续 15 天",
-      "streakDays": 15
+      "status": "claimed",
+      "message": "签到成功 +100 积分，连续 16 天",
+      "streakDays": 16
     }
   ]
 }
