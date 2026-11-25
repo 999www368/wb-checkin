@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-24T15:27:52.254Z",
+  "updatedAt": "2026-11-25T03:30:11.549Z",
   "claimed": 0,
   "totalCredit": 0,
   "failed": 0,
@@ -7,14 +7,14 @@
     {
       "name": "***微信账号",
       "status": "already",
-      "message": "今天已签到，连续 23 天",
-      "streakDays": 23
+      "message": "今天已签到，连续 24 天",
+      "streakDays": 24
     },
     {
       "name": "***qq",
       "status": "already",
-      "message": "今天已签到，连续 19 天",
-      "streakDays": 19
+      "message": "今天已签到，连续 20 天",
+      "streakDays": 20
     }
   ]
 }
